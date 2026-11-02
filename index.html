@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Pipeline Franchise IDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: barre d'indicateurs, puis tableau en colonnes (une par étape du parcours), puis entonnoir de pilotage */
+:root{
+  --bg:#f2f5f8; --surface:#ffffff; --ink:#14213d; --muted:#5d6b80; --line:#dce3eb;
+  --accent:#2b59c3; --accent-soft:#e7eefc;
+  --late:#c0392b; --late-soft:#fbe9e7; --ok:#1d8656; --ok-soft:#e2f3ea; --warn:#a86b12; --warn-soft:#fbf0dc;
+  --b-o2:#2f74d0; --b-apef:#7d3cb5; --b-bienv:#cf5a12; --b-lav:#138a76; --b-pb:#c2335a;
+  --ui:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1520; --surface:#172030; --ink:#e6ecf5; --muted:#9aa8bd; --line:#27334a;
+  --accent:#7ea4ff; --accent-soft:#1c2a48;
+  --late:#ff8d7d; --late-soft:#3b1f1c; --ok:#62d39e; --ok-soft:#163326; --warn:#f0c062; --warn-soft:#3a2f16;
+  --b-o2:#6fa8ff; --b-apef:#c08cf0; --b-bienv:#ff9a5c; --b-lav:#4fd1b8; --b-pb:#ff7fa0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1520; --surface:#172030; --ink:#e6ecf5; --muted:#9aa8bd; --line:#27334a;
+  --accent:#7ea4ff; --accent-soft:#1c2a48;
+  --late:#ff8d7d; --late-soft:#3b1f1c; --ok:#62d39e; --ok-soft:#163326; --warn:#f0c062; --warn-soft:#3a2f16;
+  --b-o2:#6fa8ff; --b-apef:#c08cf0; --b-bienv:#ff9a5c; --b-lav:#4fd1b8; --b-pb:#ff7fa0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--ui);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:22px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(24px,4vw,32px);font-weight:800;margin:2px 0 0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.danger{color:var(--late)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.demo{font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:3px 10px;font-weight:700;align-self:flex-start}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font:500 26px/1.1 var(--num);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi.alert .v{color:var(--late)}
+.goal{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.goal input{width:52px;border:1px solid var(--line);border-radius:6px;padding:2px 6px;background:var(--bg);font-family:var(--num)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--ok)}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input[type=search]{flex:1 1 220px;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px}
+.filters select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px}
+.toggle{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);cursor:pointer}
+
+.board-wrap{overflow-x:auto;padding-bottom:6px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:10px;min-width:max-content}
+.col{background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:180px;width:240px}
+.col-h{display:flex;flex-direction:column;gap:1px;padding:2px 2px 6px;border-bottom:1px solid var(--line)}
+.col-h .n{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.col-h .t{font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.col-h .c{font:500 13px var(--num);color:var(--muted)}
+.col.lost{background:color-mix(in srgb,var(--late) 8%,transparent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:left;cursor:grab;display:flex;flex-direction:column;gap:6px;width:100%}
+.card:hover{border-color:var(--accent)}
+.card .name{font-weight:700}
+.card .meta{font-size:13px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--b) 14%,transparent);color:var(--b)}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--b)}
+.pill{font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;background:var(--accent-soft);color:var(--accent)}
+.pill.late{background:var(--late-soft);color:var(--late)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.prog{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+.next{font-size:13px;display:flex;justify-content:space-between;gap:6px}
+.next span:last-child{font-family:var(--num);font-size:12px;white-space:nowrap}
+.next.late{color:var(--late);font-weight:600}
+.empty{font-size:13px;color:var(--muted);text-align:center;padding:14px 4px}
+
+section.funnel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+section.funnel h2{font-size:18px;margin:0}
+section.funnel p{margin:0;color:var(--muted);font-size:14px}
+.f-row{display:grid;grid-template-columns:minmax(120px,190px) 1fr 90px;gap:12px;align-items:center}
+.f-row .s b{display:block;font-size:14px}
+.f-row .s small{color:var(--muted);font-size:12px}
+.f-track{height:22px;background:var(--bg);border-radius:4px;overflow:hidden}
+.f-track i{display:block;height:100%;background:var(--accent);opacity:.85;border-radius:4px}
+.f-row .v{font:500 14px var(--num);text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:560px){.f-row{grid-template-columns:1fr 70px}.f-track{grid-column:1 / -1;order:3}}
+
+dialog{border:0;border-radius:14px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(10,20,40,.35)}
+dialog::backdrop{background:rgba(10,18,32,.45)}
+.dlg{display:flex;flex-direction:column;gap:16px;padding:20px}
+.dlg-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.dlg-h h2{margin:0;font-size:22px}
+.stepper{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.stepper span{height:6px;border-radius:3px;background:var(--line)}
+.stepper span.done{background:var(--accent)}
+.stepper span.cur{background:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.stage-name{font-size:13px;color:var(--muted)}
+.stage-name b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-weight:400;color:var(--ink);width:100%}
+label.f textarea{min-height:70px;resize:vertical}
+.full{grid-column:1 / -1}
+.box{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.box h3{margin:0;font-size:14px}
+.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px}
+.chk input{width:17px;height:17px;margin-top:2px;accent-color:var(--accent);flex:none}
+.chk input:disabled + span{color:var(--muted)}
+.law{font-size:13px;border-radius:8px;padding:8px 10px}
+.law.wait{background:var(--warn-soft);color:var(--warn)}
+.law.go{background:var(--ok-soft);color:var(--ok)}
+.msg{font-size:13px;color:var(--late);font-weight:600}
+.dlg-f{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px}
+.hist{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:3px;max-height:110px;overflow:auto}
+.hist span{font-family:var(--num);font-size:12px;margin-right:6px}
+.card.sortable-ghost{opacity:.35;border-style:dashed;border-color:var(--accent)}
+.card.sortable-drag{box-shadow:0 12px 30px rgba(10,20,40,.25);cursor:grabbing}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;max-width:calc(100vw - 32px);z-index:20;box-shadow:0 8px 24px rgba(10,20,40,.25)}
+footer{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Développement franchise · Île-de-France</div>
+    <h1>Pipeline Franchise IDF</h1>
+    <p class="sub">Suivi des candidats à la franchise, du premier contact aux 12 premiers mois d'activité. Faites glisser une carte pour la changer d'étape.</p>
+  </div>
+  <div class="actions">
+    <span class="demo">Données d'exemple</span>
+    <button class="btn ghost" id="reset" type="button">Recharger les exemples</button>
+    <button class="btn primary" id="add" type="button">+ Nouveau candidat</button>
+  </div>
+</header>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="filters">
+  <input type="search" id="q" placeholder="Rechercher un candidat, une ville…" aria-label="Rechercher">
+  <select id="fBrand" aria-label="Filtrer par marque"><option value="">Toutes les marques</option></select>
+  <select id="fSource" aria-label="Filtrer par source"><option value="">Toutes les sources</option></select>
+  <label class="toggle"><input type="checkbox" id="fLost"> Afficher les abandons</label>
+</div>
+
+<div class="board-wrap"><div class="board" id="board"></div></div>
+
+<section class="funnel">
+  <h2>Pilotage du parcours</h2>
+  <p>Part des candidats ayant atteint chaque étape, avec l'indicateur suivi à ce niveau.</p>
+  <div id="funnel"></div>
+</section>
+
+<footer>Les candidats affichés sont fictifs. Les données restent dans ce navigateur.</footer>
+</div>
+
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+<script>
+(function(){
+var STAGES=[
+ {name:'Acquisition',full:'Identifier et attirer',kpi:'Nombre de leads entrants',checks:['Profil comparé au franchisé idéal','Source du lead renseignée','Premier contact pris']},
+ {name:'Qualification',full:'Qualifier et valider le fit',kpi:'Taux de candidats qualifiés',checks:['Entretien de découverte et de motivation','Compétences commerciales et managériales évaluées','Motivations, contraintes, objectifs compris','Adéquation aux valeurs du réseau','Réunion d\'information collective suivie']},
+ {name:'Faisabilité',full:'Construire le projet',kpi:'Taux de projets validés',checks:['Zone de chalandise définie','Concurrence et marché local étudiés','Format d\'implantation choisi','Attentes du candidat compatibles avec le concept']},
+ {name:'Financement',full:'Valider le modèle économique',kpi:'Taux d\'obtention des financements',checks:['Investissement et droit d\'entrée chiffrés','Apport et capacité d\'endettement évalués','Prévisionnel et plan de trésorerie','Dossier bancaire déposé','Scénarios de rentabilité testés']},
+ {name:'Décision',full:'Validation par les deux parties',kpi:'Taux de transformation en contrats',checks:['Rencontre avec les équipes du réseau','Échange avec des franchisés en activité','Obligations, redevances, contrat présentés','Réalités du métier comprises','Comité d\'agrément validé']},
+ {name:'Engagement',full:'Contractualiser',kpi:'Contrats en cours de signature',checks:['DIP remis au candidat','Démarches juridiques, administratives, bancaires','Contrat de franchise signé']},
+ {name:'Pré-ouverture',full:'Former et préparer',kpi:'Taux d\'ouvertures dans les délais',checks:['Formation initiale au siège','Savoir-faire et standards transmis','Recrutement de l\'équipe','Communication locale et lancement','Prérequis à l\'ouverture vérifiés']},
+ {name:'Activation',full:'Accompagner les premiers mois',kpi:'Performance à 3, 6 et 12 mois',checks:['Suivi renforcé des premières semaines','Point à 3 mois','Point à 6 mois','Point à 12 mois']}
+];
+var BRANDS={o2:{n:'O2',c:'--b-o2'},apef:{n:'APEF',c:'--b-apef'},bienv:{n:'Les Bienveillants',c:'--b-bienv'},lav:{n:'La Compagnie des Lavandières',c:'--b-lav'},pb:{n:'Les Petits Bilingues',c:'--b-pb'}};
+var SOURCES=['Franchise Expo Paris','Campagne OUI','Portail franchise','LinkedIn','Recommandation franchisé','Webinaire','Banque partenaire'];
+var LOST=['Apport insuffisant','Projet reporté','A choisi un autre réseau','Zone indisponible','Profil non retenu'];
+var DOUBIN=20, ENG=5, KEY='pf-idf-v1';
+
+function today(){var d=new Date();d.setHours(0,0,0,0);return d}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function off(n){var d=today();d.setDate(d.getDate()+n);return iso(d)}
+function parse(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function diff(s){return Math.round((parse(s)-today())/864e5)}
+function fmt(s){return parse(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function uid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+function mk(o){
+  var checks={};
+  for(var i=0;i<STAGES.length;i++){
+    var n=STAGES[i].checks.length;
+    checks[i]=STAGES[i].checks.map(function(_,j){return i<o.stage || (i===o.stage && j<(o.done||0))});
+  }
+  return {id:uid(),name:o.name,brand:o.brand,city:o.city,source:o.source,apport:o.apport,stage:o.stage,lost:!!o.lost,lostReason:o.lost||'',
+    nextLabel:o.next||'',nextDate:o.nd==null?'':off(o.nd),dip:o.dip==null?'':off(o.dip),checks:checks,notes:o.notes||'',
+    hist:[{d:off(o.since||-30),t:'Lead créé ('+o.source+')'}]};
+}
+function seed(){
+  return [
+   mk({name:'Nadia Haddad',brand:'pb',city:'Paris 15e',source:'Portail franchise',apport:30,stage:0,done:2,next:'Premier appel de découverte',nd:0,since:-2}),
+   mk({name:'Hugo Bernard',brand:'lav',city:'Vincennes (94)',source:'Portail franchise',apport:20,stage:0,done:1,next:'Envoyer la brochure',nd:-3,since:-6}),
+   mk({name:'Sophie Lefèvre',brand:'lav',city:'Boulogne-Billancourt (92)',source:'LinkedIn',apport:25,stage:1,done:1,next:'Entretien de motivation',nd:-1,since:-12}),
+   mk({name:'Inès Garnier',brand:'bienv',city:'Argenteuil (95)',source:'Recommandation franchisé',apport:50,stage:1,done:3,next:'Réunion d\'information collective',nd:2,since:-15,notes:'Ancienne infirmière, très sensible au projet seniors.'}),
+   mk({name:'Julien Moreau',brand:'o2',city:'Cergy (95)',source:'Webinaire',apport:40,stage:2,done:2,next:'Valider la zone de chalandise',nd:3,since:-25}),
+   mk({name:'Thomas Girard',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
+   mk({name:'Claire Martin',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
+   mk({name:'Karim Benali',brand:'o2',city:'Saint-Denis (93)',source:'Campagne OUI',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise O2 + O2 Jardinage.'}),
+   mk({name:'Émilie Rousseau',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
+   mk({name:'Marc Dubois',brand:'apef',city:'Meaux (77)',source:'Campagne OUI',apport:35,stage:7,done:1,dip:-150,next:'Point à 3 mois',nd:14,since:-200}),
+   mk({name:'Laura Petit',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
+   mk({name:'Paul Lambert',brand:'o2',city:'Rueil-Malmaison (92)',source:'Franchise Expo Paris',apport:45,stage:2,done:1,lost:'Projet reporté',since:-60})
+  ];
+}
+
+var store={get:function(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}},
+           set:function(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
+var state=store.get()||{goal:15,list:seed()};
+function save(){store.set(state)}
+
+function doubinDate(c){if(!c.dip)return null;var d=parse(c.dip);d.setDate(d.getDate()+DOUBIN);return iso(d)}
+function doubinOk(c){var d=doubinDate(c);return !!d && diff(d)<=0}
+function signed(c){return c.stage>ENG || (c.stage===ENG && c.checks[ENG][2])}
+function progress(c){var a=c.checks[c.stage]||[];var n=a.filter(Boolean).length;return [n,a.length]}
+function brandChip(b){var B=BRANDS[b];return '<span class="chip" style="--b:var('+B.c+')">'+esc(B.n)+'</span>'}
+
+// Filtres
+var fBrand=document.getElementById('fBrand'),fSource=document.getElementById('fSource'),q=document.getElementById('q'),fLost=document.getElementById('fLost');
+Object.keys(BRANDS).forEach(function(k){fBrand.insertAdjacentHTML('beforeend','<option value="'+k+'">'+esc(BRANDS[k].n)+'</option>')});
+SOURCES.forEach(function(s){fSource.insertAdjacentHTML('beforeend','<option>'+esc(s)+'</option>')});
+[fBrand,fSource,q,fLost].forEach(function(el){el.addEventListener('input',renderBoard)});
+
+function visible(c){
+  var t=q.value.trim().toLowerCase();
+  if(t && (c.name+' '+c.city+' '+(c.notes||'')).toLowerCase().indexOf(t)<0) return false;
+  if(fBrand.value && c.brand!==fBrand.value) return false;
+  if(fSource.value && c.source!==fSource.value) return false;
+  return true;
+}
+
+function renderKpis(){
+  var L=state.list, active=L.filter(function(c){return !c.lost && !signed(c)}).length;
+  var sig=L.filter(function(c){return !c.lost && signed(c)}).length;
+  var late=L.filter(function(c){return !c.lost && c.nextDate && diff(c.nextDate)<0}).length;
+  var conv=L.length?Math.round(sig/L.length*100):0;
+  var pct=Math.min(100,Math.round(sig/(state.goal||1)*100));
+  document.getElementById('kpis').innerHTML=
+   '<div class="kpi"><span class="v">'+L.length+'</span><span class="l">Leads au total</span></div>'+
+   '<div class="kpi"><span class="v">'+active+'</span><span class="l">Candidats en cours de parcours</span></div>'+
+   '<div class="kpi"><span class="v">'+sig+' / '+state.goal+'</span><span class="goal">Contrats signés · objectif <input id="goal" type="number" min="1" value="'+state.goal+'" aria-label="Objectif de signatures"></span><div class="bar"><i style="width:'+pct+'%"></i></div></div>'+
+   '<div class="kpi"><span class="v">'+conv+' %</span><span class="l">Transformation lead → contrat</span></div>'+
+   '<div class="kpi'+(late?' alert':'')+'"><span class="v">'+late+'</span><span class="l">Relances en retard</span></div>';
+  document.getElementById('goal').addEventListener('change',function(e){var v=parseInt(e.target.value,10);if(v>0){state.goal=v;save();renderKpis()}});
+}
+
+function card(c){
+  var p=progress(c), html='<button class="card" type="button" data-id="'+c.id+'">';
+  html+='<span class="name">'+esc(c.name)+'</span><span class="row">'+brandChip(c.brand)+'</span>';
+  html+='<span class="meta">'+esc(c.city)+' · apport '+esc(c.apport)+' k€</span>';
+  if(c.lost){html+='<span class="row"><span class="pill late">'+esc(c.lostReason)+'</span><span class="pill">arrêté en '+STAGES[c.stage].name+'</span></span>';}
+  else{
+    html+='<span class="prog" title="'+p[0]+'/'+p[1]+' étapes faites"><i style="width:'+(p[1]?p[0]/p[1]*100:0)+'%"></i></span>';
+    if(c.stage===ENG){
+      if(!c.dip) html+='<span class="row"><span class="pill warn">DIP à remettre</span></span>';
+      else if(signed(c)) html+='<span class="row"><span class="pill ok">Contrat signé</span></span>';
+      else if(doubinOk(c)) html+='<span class="row"><span class="pill ok">Délai Doubin respecté</span></span>';
+      else html+='<span class="row"><span class="pill warn">Signature possible dans '+diff(doubinDate(c))+' j</span></span>';
+    }
+    if(c.nextLabel){var d=c.nextDate?diff(c.nextDate):null, late=d!=null&&d<0;
+      html+='<span class="next'+(late?' late':'')+'"><span>'+esc(c.nextLabel)+'</span><span>'+(d==null?'':d===0?"aujourd'hui":late?'retard '+(-d)+' j':fmt(c.nextDate))+'</span></span>';}
+  }
+  return html+'</button>';
+}
+
+function renderBoard(){
+  var L=state.list.filter(visible), out='';
+  STAGES.forEach(function(s,i){
+    var items=L.filter(function(c){return !c.lost && c.stage===i});
+    out+='<div class="col" data-stage="'+i+'"><div class="col-h"><span class="n">Étape '+(i+1)+'</span><span class="t">'+s.name+'<span class="c">'+items.length+'</span></span></div>';
+    out+=items.length?items.map(card).join(''):'<div class="empty">Aucun candidat</div>';
+    out+='</div>';
+  });
+  if(fLost.checked){
+    var lost=L.filter(function(c){return c.lost});
+    out+='<div class="col lost" data-stage="lost"><div class="col-h"><span class="n">Sortis du parcours</span><span class="t">Abandons<span class="c">'+lost.length+'</span></span></div>'+(lost.length?lost.map(card).join(''):'<div class="empty">Aucun abandon</div>')+'</div>';
+  }
+  document.getElementById('board').innerHTML=out;
+  initDnD();
+}
+
+// Glisser-déposer
+function toast(t){var el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){el.hidden=true},4000)}
+var sortables=[];
+function initDnD(){
+  if(!window.Sortable)return;
+  sortables.forEach(function(s){s.destroy()});sortables=[];
+  Array.prototype.forEach.call(document.querySelectorAll('#board .col'),function(col){
+    sortables.push(Sortable.create(col,{group:'pipeline',draggable:'.card',filter:'.empty',animation:150,
+      delay:150,delayOnTouchOnly:true,ghostClass:'sortable-ghost',dragClass:'sortable-drag',
+      onEnd:function(ev){
+        if(ev.from===ev.to){setTimeout(renderBoard,0);return}
+        moveTo(ev.item.dataset.id,ev.to.dataset.stage);
+      }}));
+  });
+}
+function moveTo(id,target){
+  var c=find(id);
+  if(c && target==='lost'){
+    if(!c.lost){c.lost=true;c.lostReason='Motif à préciser';log(c,'Sorti du parcours');save();toast(c.name+' passe en abandon. Précisez le motif dans sa fiche.')}
+  } else if(c){
+    var to=+target;
+    if(c.stage<=ENG && to>ENG && !signed(c)){
+      toast(!c.dip?'Remettez d\'abord le DIP à '+c.name+'.':!doubinOk(c)?'Loi Doubin : pas de signature avant le '+fmt(doubinDate(c))+'.':'Cochez « Contrat de franchise signé » dans la fiche de '+c.name+'.');
+    } else {
+      if(c.lost){c.lost=false;log(c,'Réintégré au parcours')}
+      if(to!==c.stage){c.stage=to;log(c,'Passage à l\'étape '+STAGES[to].name)}
+      save();
+    }
+  }
+  setTimeout(renderAll,0);
+}
+
+function renderFunnel(){
+  var L=state.list, n=L.length||1, out='';
+  STAGES.forEach(function(s,i){
+    var r=L.filter(function(c){return c.stage>=i}).length;
+    out+='<div class="f-row"><div class="s"><b>'+(i+1)+'. '+s.name+'</b><small>'+s.kpi+'</small></div><div class="f-track"><i style="width:'+(r/n*100)+'%"></i></div><div class="v">'+r+' · '+Math.round(r/n*100)+' %</div></div>';
+  });
+  document.getElementById('funnel').innerHTML=out;
+}
+function renderAll(){renderKpis();renderBoard();renderFunnel()}
+
+// Fiche candidat
+var dlg=document.getElementById('dlg'), body=document.getElementById('dlgBody'), cur=null, flash='';
+function find(id){return state.list.filter(function(c){return c.id===id})[0]}
+function log(c,t){c.hist.unshift({d:iso(today()),t:t})}
+
+function openCard(id){cur=find(id);flash='';draw();if(!dlg.open)dlg.showModal()}
+function draw(){
+  var c=cur, s=STAGES[c.stage], h='';
+  h+='<div class="dlg-h"><div><h2>'+esc(c.name)+'</h2><div class="row" style="margin-top:6px">'+brandChip(c.brand)+(c.lost?'<span class="pill late">Abandon : '+esc(c.lostReason)+'</span>':'')+'</div></div><button class="btn ghost" type="button" data-act="close" aria-label="Fermer">Fermer</button></div>';
+  h+='<div><div class="stepper">'+STAGES.map(function(_,i){return '<span class="'+(i<c.stage?'done':i===c.stage?'cur':'')+'" title="'+STAGES[i].name+'"></span>'}).join('')+'</div><div class="stage-name" style="margin-top:6px">Étape '+(c.stage+1)+' sur 8 · <b>'+s.name+'</b> · '+s.full+'</div></div>';
+  h+='<div class="grid">';
+  h+='<label class="f">Marque visée<select id="e-brand">'+Object.keys(BRANDS).map(function(k){return '<option value="'+k+'"'+(k===c.brand?' selected':'')+'>'+esc(BRANDS[k].n)+'</option>'}).join('')+'</select></label>';
+  h+='<label class="f">Zone d\'implantation<input id="e-city" value="'+esc(c.city)+'"></label>';
+  h+='<label class="f">Source du lead<select id="e-source">'+SOURCES.map(function(x){return '<option'+(x===c.source?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></label>';
+  h+='<label class="f">Apport personnel (k€)<input id="e-apport" type="number" min="0" value="'+esc(c.apport)+'"></label>';
+  h+='<label class="f">Prochaine action<input id="e-next" value="'+esc(c.nextLabel)+'" placeholder="Ex. relance téléphonique"></label>';
+  h+='<label class="f">Date prévue<input id="e-nd" type="date" value="'+esc(c.nextDate)+'"></label>';
+  h+='<label class="f full">Notes<textarea id="e-notes">'+esc(c.notes)+'</textarea></label>';
+  h+='</div>';
+  h+='<div class="box"><h3>À faire à cette étape</h3>';
+  s.checks.forEach(function(t,j){
+    var dis='', checked=c.checks[c.stage][j];
+    if(c.stage===ENG && j===0){checked=!!c.dip;dis=' disabled'}
+    if(c.stage===ENG && j===2 && !doubinOk(c)){dis=' disabled'}
+    h+='<label class="chk"><input type="checkbox" data-chk="'+j+'"'+(checked?' checked':'')+dis+'><span>'+esc(t)+'</span></label>';
+  });
+  if(c.stage===ENG){
+    h+='<label class="f">Date de remise du DIP<input id="e-dip" type="date" value="'+esc(c.dip)+'"></label>';
+    if(!c.dip) h+='<div class="law wait">Loi Doubin : remettez le DIP, puis attendez '+DOUBIN+' jours avant toute signature ou tout versement.</div>';
+    else if(doubinOk(c)) h+='<div class="law go">Délai de '+DOUBIN+' jours respecté depuis le '+fmt(c.dip)+' : la signature est possible.</div>';
+    else h+='<div class="law wait">Signature possible à partir du '+fmt(doubinDate(c))+' (DIP remis le '+fmt(c.dip)+').</div>';
+  }
+  h+='</div>';
+  if(flash) h+='<div class="msg">'+esc(flash)+'</div>';
+  if(c.hist.length) h+='<div class="box"><h3>Historique</h3><div class="hist">'+c.hist.map(function(x){return '<div><span>'+fmt(x.d)+'</span>'+esc(x.t)+'</div>'}).join('')+'</div></div>';
+  h+='<div class="dlg-f"><div class="row">';
+  if(c.lost){h+='<select id="e-lostr" aria-label="Motif d\'abandon" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px">'+['Motif à préciser'].concat(LOST).map(function(x){return '<option'+(x===c.lostReason?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select><button class="btn" type="button" data-act="revive">Réintégrer au parcours</button>';}
+  else{
+    h+='<button class="btn" type="button" data-act="prev"'+(c.stage===0?' disabled':'')+'>← Étape précédente</button>';
+    h+='<button class="btn primary" type="button" data-act="next"'+(c.stage===7?' disabled':'')+'>Étape suivante →</button>';
+  }
+  h+='</div><div class="row">';
+  if(!c.lost) h+='<select id="e-lost" aria-label="Motif d\'abandon" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px">'+LOST.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select><button class="btn danger" type="button" data-act="lose">Marquer abandon</button>';
+  h+='<button class="btn ghost danger" type="button" data-act="del">'+(c._del?'Confirmer la suppression':'Supprimer')+'</button>';
+  h+='</div></div>';
+  body.innerHTML=h;
+}
+
+body.addEventListener('input',function(e){
+  var c=cur,t=e.target;if(!c)return;
+  var map={'e-city':'city','e-next':'nextLabel','e-notes':'notes','e-nd':'nextDate','e-apport':'apport','e-brand':'brand','e-source':'source','e-lostr':'lostReason'};
+  if(map[t.id]){c[map[t.id]]=t.value;save();renderAll();if(t.id==='e-brand'||t.id==='e-lostr')draw();return}
+  if(t.id==='e-dip'){c.dip=t.value;if(t.value)log(c,'DIP remis le '+fmt(t.value));save();renderAll();draw();return}
+  if(t.dataset.chk!=null){c.checks[c.stage][+t.dataset.chk]=t.checked;if(c.stage===ENG&&+t.dataset.chk===2&&t.checked)log(c,'Contrat de franchise signé');save();renderAll();draw()}
+});
+body.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;var c=cur,a=b.dataset.act;flash='';
+  if(a==='close'){dlg.close();return}
+  if(a==='del'){if(!c._del){c._del=true;draw();return}state.list=state.list.filter(function(x){return x!==c});save();renderAll();dlg.close();return}
+  delete c._del;
+  if(a==='next'){
+    if(c.stage===ENG && !signed(c)){flash=!c.dip?'Remettez d\'abord le DIP au candidat.':!doubinOk(c)?'Le délai légal de '+DOUBIN+' jours n\'est pas écoulé : pas de signature avant le '+fmt(doubinDate(c))+'.':'Cochez « Contrat de franchise signé » pour passer à la pré-ouverture.';draw();return}
+    c.stage++;log(c,'Passage à l\'étape '+STAGES[c.stage].name);
+  }
+  if(a==='prev'){c.stage--;log(c,'Retour à l\'étape '+STAGES[c.stage].name)}
+  if(a==='lose'){c.lost=true;c.lostReason=document.getElementById('e-lost').value;log(c,'Abandon : '+c.lostReason)}
+  if(a==='revive'){c.lost=false;log(c,'Réintégré au parcours')}
+  save();renderAll();draw();
+});
+dlg.addEventListener('close',function(){if(cur)delete cur._del;cur=null});
+document.getElementById('board').addEventListener('click',function(e){var b=e.target.closest('.card');if(b)openCard(b.dataset.id)});
+
+// Nouveau candidat
+document.getElementById('add').addEventListener('click',function(){
+  body.innerHTML='<div class="dlg-h"><h2>Nouveau candidat</h2><button class="btn ghost" type="button" data-new="close">Fermer</button></div>'+
+  '<form id="newForm" class="grid">'+
+  '<label class="f full">Nom et prénom<input id="n-name" required placeholder="Ex. Camille Durand"></label>'+
+  '<label class="f">Marque visée<select id="n-brand">'+Object.keys(BRANDS).map(function(k){return '<option value="'+k+'">'+esc(BRANDS[k].n)+'</option>'}).join('')+'</select></label>'+
+  '<label class="f">Zone d\'implantation<input id="n-city" placeholder="Ex. Pontoise (95)"></label>'+
+  '<label class="f">Source du lead<select id="n-source">'+SOURCES.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select></label>'+
+  '<label class="f">Apport personnel (k€)<input id="n-apport" type="number" min="0" placeholder="Ex. 40"></label>'+
+  '<div class="full row" style="justify-content:flex-end"><button class="btn primary" type="submit">Ajouter au pipeline</button></div></form>';
+  cur=null; if(!dlg.open) dlg.showModal(); document.getElementById('n-name').focus();
+});
+body.addEventListener('submit',function(e){
+  e.preventDefault();
+  var name=document.getElementById('n-name').value.trim();if(!name)return;
+  var c=mk({name:name,brand:document.getElementById('n-brand').value,city:document.getElementById('n-city').value.trim()||'À préciser',source:document.getElementById('n-source').value,apport:document.getElementById('n-apport').value||0,stage:0,done:0,since:0,next:'Premier appel de découverte',nd:1});
+  state.list.unshift(c);save();renderAll();openCard(c.id);
+});
+body.addEventListener('click',function(e){if(e.target.closest('[data-new="close"]'))dlg.close()});
+
+// Recharger les exemples (double clic de confirmation)
+var reset=document.getElementById('reset'),armed=false;
+reset.addEventListener('click',function(){
+  if(!armed){armed=true;reset.textContent='Confirmer : tout remplacer';setTimeout(function(){armed=false;reset.textContent='Recharger les exemples'},4000);return}
+  armed=false;reset.textContent='Recharger les exemples';state={goal:15,list:seed()};save();renderAll();
+});
+
+renderAll();
+})();
+</script>
+
+</body>
+</html>
