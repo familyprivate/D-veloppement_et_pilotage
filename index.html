@@ -232,10 +232,10 @@ function seed(){
    mk({aide:'ARE',name:'Thomas G.',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
    mk({aide:'ARCE',name:'Claire M.',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
    mk({aide:'Autre aide',name:'Franck B.',brand:'o2',city:'Saint-Denis (93)',source:'Marketing',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise H2O + H2O Jardinage.'}),
-   mk({aide:'ARE',name:'Émilie R.',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
+   mk({aide:'ARE',name:'Émilie R.',brand:'bienv',city:'Ermont (95)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
    mk({aide:'ARCE',name:'Frédéric C.',brand:'lav',city:'Saint-Germain-en-Laye (78)',source:'Partenaires',apport:40,stage:7,done:1,dip:-90,next:'Inauguration de l\'agence',nd:4,since:-140}),
    mk({aide:'ARE',name:'Romain V.',brand:'o2',city:'Montreuil (93)',source:'Salon Go Entrepreneurs',apport:45,stage:7,done:4,dip:-150,won:-10,suivi:[false,false,false],next:'Point à 3 mois',nd:80,since:-190}),
-   mk({name:'Marc D.',brand:'apef',city:'Meaux (77)',source:'Marketing',apport:35,stage:7,done:4,dip:-220,won:-100,suivi:[true,false,false],next:'Point à 6 mois',nd:14,since:-260}),
+   mk({name:'Marc D.',brand:'apef',city:'Taverny (95)',source:'Marketing',apport:35,stage:7,done:4,dip:-220,won:-100,suivi:[true,false,false],next:'Point à 6 mois',nd:14,since:-260}),
    mk({name:'Isabelle T.',brand:'pb',city:'Paris 11e',source:'Salon SME',apport:30,stage:7,done:4,dip:-480,won:-200,suivi:[true,true,true],since:-520,notes:'Franchisée autonome, envisage une 2e agence.'}),
    mk({aide:'Aucune aide',name:'Laura P.',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
    mk({name:'Paul L.',brand:'o2',city:'Rueil-Malmaison (92)',source:'Franchise Expo Paris',apport:45,stage:2,done:1,lost:'Projet reporté',since:-60})
@@ -264,6 +264,8 @@ if(!state){var prev=store.get(OLDKEY);state=prev&&prev.list?migrate(prev):{goal:
 // Checklists raccourcies : Acquisition (-1 point), Décision (-1 point)
 if((state.v||0)<4){state.list.forEach(function(c){if(c.checks[0]&&c.checks[0].length===3)c.checks[0].splice(0,1);if(c.checks[4]&&c.checks[4].length===5)c.checks[4].splice(3,1)});state.v=4}
 state.list.forEach(function(c){if(c.lostReason==='Profil non retenu')c.lostReason='Profil non retenu par le franchiseur'});
+var CITIES={'Meaux (77)':'Taverny (95)','Évry-Courcouronnes (91)':'Ermont (95)'};
+state.list.forEach(function(c){if(CITIES[c.city])c.city=CITIES[c.city]});
 function save(){store.set(KEY,state)}
 
 function doubinDate(c){if(!c.dip)return null;var d=parse(c.dip);d.setDate(d.getDate()+DOUBIN);return iso(d)}
