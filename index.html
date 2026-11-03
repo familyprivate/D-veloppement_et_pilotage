@@ -118,6 +118,7 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:60
 label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-weight:400;color:var(--ink);width:100%}
 label.f textarea{min-height:70px;resize:vertical}
 .full{grid-column:1 / -1}
+.aide-hint{font-size:12px;color:var(--muted);align-self:end;padding-bottom:6px}
 .box{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .box h3{margin:0;font-size:14px}
 .chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px}
@@ -198,6 +199,7 @@ var SUIVI=['Point à 3 mois','Point à 6 mois','Retour d\'expérience du franchi
 var SUIVI_COLS=['Point à 3 mois','Point à 6 mois','Retour d\'expérience','Suivi terminé'];
 var BRANDS={o2:{n:'H2O',c:'--b-o2'},apef:{n:'FEPA',c:'--b-apef'},bienv:{n:'Les Bien-pensants',c:'--b-bienv'},lav:{n:'La Compagnie du Lavandou',c:'--b-lav'},pb:{n:'Les Mini-polyglottes',c:'--b-pb'}};
 var SOURCES=['Franchise Expo Paris','Salon Go Entrepreneurs','Salon SME','Marketing','Portail franchise','LinkedIn','Recommandation franchisé','Webinaire','Partenaires'];
+var AIDES=['Non renseigné','ARCE','ARE','Autre aide','Aucune aide'];
 var LOST=['Abandon','Apport insuffisant','Projet reporté','A choisi un autre réseau','Zone indisponible','Profil non retenu par le franchiseur'];
 var DOUBIN=20, ENG=5, PRE=6, OUV=7, KEY='pf-idf-v3', OLDKEY='pf-idf-v2';
 
@@ -215,7 +217,7 @@ function mk(o){
   for(var i=0;i<STAGES.length;i++){
     checks[i]=STAGES[i].checks.map(function(_,j){return i<o.stage || (i===o.stage && j<(o.done||0))});
   }
-  return {id:uid(),name:o.name,brand:o.brand,city:o.city,source:o.source,apport:o.apport,stage:o.stage,lost:!!o.lost,lostReason:o.lost||'',
+  return {id:uid(),name:o.name,brand:o.brand,city:o.city,source:o.source,apport:o.apport,aide:o.aide||'Non renseigné',stage:o.stage,lost:!!o.lost,lostReason:o.lost||'',
     won:o.won!=null,wonDate:o.won!=null?off(o.won):'',suivi:o.suivi||[false,false,false],
     nextLabel:o.next||'',nextDate:o.nd==null?'':off(o.nd),dip:o.dip==null?'':off(o.dip),checks:checks,notes:o.notes||'',
     hist:[{d:off(o.since||-30),t:'Lead créé ('+o.source+')'}]};
@@ -225,17 +227,17 @@ function seed(){
    mk({name:'Nadia H.',brand:'pb',city:'Paris 15e',source:'Portail franchise',apport:30,stage:0,done:2,next:'Premier appel de découverte',nd:0,since:-2}),
    mk({name:'Hugo B.',brand:'lav',city:'Vincennes (94)',source:'Portail franchise',apport:20,stage:0,done:1,next:'Envoyer la brochure',nd:-3,since:-6}),
    mk({name:'Sophie L.',brand:'lav',city:'Boulogne-Billancourt (92)',source:'LinkedIn',apport:25,stage:1,done:1,next:'Entretien de motivation',nd:-1,since:-12}),
-   mk({name:'Déborah G.',brand:'bienv',city:'Argenteuil (95)',source:'Recommandation franchisé',apport:50,stage:1,done:3,next:'Réunion d\'information collective',nd:2,since:-15,notes:'Ancienne infirmière, très sensible au projet seniors.'}),
+   mk({aide:'ARCE',name:'Déborah G.',brand:'bienv',city:'Argenteuil (95)',source:'Recommandation franchisé',apport:50,stage:1,done:3,next:'Réunion d\'information collective',nd:2,since:-15,notes:'Ancienne infirmière, très sensible au projet seniors.'}),
    mk({name:'Julien M.',brand:'o2',city:'Cergy (95)',source:'Webinaire',apport:40,stage:2,done:2,next:'Valider la zone de chalandise',nd:3,since:-25}),
-   mk({name:'Thomas G.',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
-   mk({name:'Claire M.',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
-   mk({name:'Franck B.',brand:'o2',city:'Saint-Denis (93)',source:'Marketing',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise H2O + H2O Jardinage.'}),
-   mk({name:'Émilie R.',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
-   mk({name:'Frédéric C.',brand:'lav',city:'Saint-Germain-en-Laye (78)',source:'Partenaires',apport:40,stage:7,done:1,dip:-90,next:'Inauguration de l\'agence',nd:4,since:-140}),
-   mk({name:'Romain V.',brand:'o2',city:'Montreuil (93)',source:'Salon Go Entrepreneurs',apport:45,stage:7,done:4,dip:-150,won:-10,suivi:[false,false,false],next:'Point à 3 mois',nd:80,since:-190}),
+   mk({aide:'ARE',name:'Thomas G.',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
+   mk({aide:'ARCE',name:'Claire M.',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
+   mk({aide:'Autre aide',name:'Franck B.',brand:'o2',city:'Saint-Denis (93)',source:'Marketing',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise H2O + H2O Jardinage.'}),
+   mk({aide:'ARE',name:'Émilie R.',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
+   mk({aide:'ARCE',name:'Frédéric C.',brand:'lav',city:'Saint-Germain-en-Laye (78)',source:'Partenaires',apport:40,stage:7,done:1,dip:-90,next:'Inauguration de l\'agence',nd:4,since:-140}),
+   mk({aide:'ARE',name:'Romain V.',brand:'o2',city:'Montreuil (93)',source:'Salon Go Entrepreneurs',apport:45,stage:7,done:4,dip:-150,won:-10,suivi:[false,false,false],next:'Point à 3 mois',nd:80,since:-190}),
    mk({name:'Marc D.',brand:'apef',city:'Meaux (77)',source:'Marketing',apport:35,stage:7,done:4,dip:-220,won:-100,suivi:[true,false,false],next:'Point à 6 mois',nd:14,since:-260}),
    mk({name:'Isabelle T.',brand:'pb',city:'Paris 11e',source:'Salon SME',apport:30,stage:7,done:4,dip:-480,won:-200,suivi:[true,true,true],since:-520,notes:'Franchisée autonome, envisage une 2e agence.'}),
-   mk({name:'Laura P.',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
+   mk({aide:'Aucune aide',name:'Laura P.',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
    mk({name:'Paul L.',brand:'o2',city:'Rueil-Malmaison (92)',source:'Franchise Expo Paris',apport:45,stage:2,done:1,lost:'Projet reporté',since:-60})
   ];
 }
@@ -316,7 +318,7 @@ function nextLine(c){
 function card(c){
   var p=progress(c), html='<button class="card" type="button" data-id="'+c.id+'">';
   html+='<span class="name">'+esc(c.name)+'</span><span class="row">'+brandChip(c.brand)+'</span>';
-  html+='<span class="meta">'+esc(c.city)+' · apport '+esc(c.apport)+' k€</span>';
+  html+='<span class="meta">'+esc(c.city)+' · apport '+esc(c.apport)+' k€'+(c.aide&&c.aide!=='Non renseigné'?' · '+esc(c.aide):'')+'</span>';
   if(c.won){html+='<span class="row"><span class="pill ok">Gagné le '+fmt(c.wonDate)+'</span><span class="pill">'+(suiviDone(c)?'Suivi terminé':'En suivi '+suiviCol(c)+'/'+SUIVI.length)+'</span></span>';}
   else if(c.lost){html+='<span class="row"><span class="pill late">'+esc(c.lostReason)+'</span><span class="pill">arrêté en '+STAGES[c.stage].name+'</span></span>';}
   else{
@@ -442,6 +444,8 @@ function draw(){
   h+='<label class="f">Zone d\'implantation<input id="e-city" value="'+esc(c.city)+'"></label>';
   h+='<label class="f">Source du lead<select id="e-source">'+SOURCES.map(function(x){return '<option'+(x===c.source?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></label>';
   h+='<label class="f">Apport personnel (k€)<input id="e-apport" type="number" min="0" value="'+esc(c.apport)+'"></label>';
+  h+='<label class="f">Aide à la création<select id="e-aide">'+AIDES.map(function(x){return '<option'+(x===(c.aide||AIDES[0])?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></label>';
+  h+='<span class="aide-hint">ARCE : 60 % des droits au chômage versés en capital. ARE : maintien des allocations mensuelles pendant le lancement.</span>';
   h+='<label class="f">Prochaine action<input id="e-next" value="'+esc(c.nextLabel)+'" placeholder="Ex. relance téléphonique"></label>';
   h+='<label class="f">Date prévue<input id="e-nd" type="date" value="'+esc(c.nextDate)+'"></label>';
   h+='<label class="f full">Notes<textarea id="e-notes">'+esc(c.notes)+'</textarea></label>';
@@ -487,7 +491,7 @@ function draw(){
 
 body.addEventListener('input',function(e){
   var c=cur,t=e.target;if(!c)return;
-  var map={'e-city':'city','e-next':'nextLabel','e-notes':'notes','e-nd':'nextDate','e-apport':'apport','e-brand':'brand','e-source':'source','e-lostr':'lostReason'};
+  var map={'e-city':'city','e-next':'nextLabel','e-notes':'notes','e-nd':'nextDate','e-apport':'apport','e-brand':'brand','e-source':'source','e-aide':'aide','e-lostr':'lostReason'};
   if(map[t.id]){c[map[t.id]]=t.value;save();renderAll();if(t.id==='e-brand'||t.id==='e-lostr')draw();return}
   if(t.id==='e-dip'){c.dip=t.value;if(t.value)log(c,'DIP remis le '+fmt(t.value));save();renderAll();draw();return}
   if(t.dataset.suivi!=null){c.suivi[+t.dataset.suivi]=t.checked;var k=suiviCol(c);if(k>=SUIVI.length){c.nextLabel='';c.nextDate='';log(c,'Suivi terminé')}else if(t.checked){c.nextLabel=SUIVI[k];log(c,SUIVI[+t.dataset.suivi]+' fait')}save();renderAll();draw();return}
@@ -522,13 +526,14 @@ document.getElementById('add').addEventListener('click',function(){
   '<label class="f">Zone d\'implantation<input id="n-city" placeholder="Ex. Pontoise (95)"></label>'+
   '<label class="f">Source du lead<select id="n-source">'+SOURCES.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select></label>'+
   '<label class="f">Apport personnel (k€)<input id="n-apport" type="number" min="0" placeholder="Ex. 40"></label>'+
+  '<label class="f full">Aide à la création<select id="n-aide">'+AIDES.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select></label>'+
   '<div class="full row" style="justify-content:flex-end"><button class="btn primary" type="submit">Ajouter au pipeline</button></div></form>';
   cur=null; if(!dlg.open) dlg.showModal(); document.getElementById('n-name').focus();
 });
 body.addEventListener('submit',function(e){
   e.preventDefault();
   var name=document.getElementById('n-name').value.trim();if(!name)return;
-  var c=mk({name:name,brand:document.getElementById('n-brand').value,city:document.getElementById('n-city').value.trim()||'À préciser',source:document.getElementById('n-source').value,apport:document.getElementById('n-apport').value||0,stage:0,done:0,since:0,next:'Premier appel de découverte',nd:1});
+  var c=mk({name:name,brand:document.getElementById('n-brand').value,city:document.getElementById('n-city').value.trim()||'À préciser',source:document.getElementById('n-source').value,apport:document.getElementById('n-apport').value||0,aide:document.getElementById('n-aide').value,stage:0,done:0,since:0,next:'Premier appel de découverte',nd:1});
   state.list.unshift(c);save();renderAll();openCard(c.id);
 });
 body.addEventListener('click',function(e){if(e.target.closest('[data-new="close"]'))dlg.close()});
