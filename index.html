@@ -66,6 +66,8 @@ h1{font-size:clamp(24px,4vw,32px);font-weight:800;margin:2px 0 0;letter-spacing:
 .col-h .n{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .col-h .t{font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
 .col-h .c{font:500 13px var(--num);color:var(--muted)}
+.close-box .btn{font-size:13px;padding:6px 12px}
+.col.won{background:color-mix(in srgb,var(--ok) 9%,transparent)}
 .col.lost{background:color-mix(in srgb,var(--late) 8%,transparent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:left;cursor:grab;display:flex;flex-direction:column;gap:6px;width:100%}
 .card:hover{border-color:var(--accent)}
@@ -85,6 +87,9 @@ h1{font-size:clamp(24px,4vw,32px);font-weight:800;margin:2px 0 0;letter-spacing:
 .next.late{color:var(--late);font-weight:600}
 .empty{font-size:13px;color:var(--muted);text-align:center;padding:14px 4px}
 
+section.suivi{display:flex;flex-direction:column;gap:10px}
+.sec-h h2{font-size:18px;margin:0}
+.sec-h p{margin:2px 0 0;color:var(--muted);font-size:14px}
 section.funnel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
 section.funnel h2{font-size:18px;margin:0}
 section.funnel p{margin:0;color:var(--muted);font-size:14px}
@@ -139,7 +144,7 @@ footer{font-size:13px;color:var(--muted)}
   <div>
     <div class="eyebrow">Développement franchise · Île-de-France</div>
     <h1>Pipeline Franchise IDF</h1>
-    <p class="sub">Suivi des candidats à la franchise, du premier contact aux 12 premiers mois d'activité. Faites glisser une carte pour la changer d'étape.</p>
+    <p class="sub">Suivi des candidats à la franchise, du premier contact au suivi des premiers mois d'activité. Faites glisser une carte pour la changer d'étape.</p>
   </div>
   <div class="actions">
     <span class="demo">Données d'exemple</span>
@@ -154,10 +159,15 @@ footer{font-size:13px;color:var(--muted)}
   <input type="search" id="q" placeholder="Rechercher un candidat, une ville…" aria-label="Rechercher">
   <select id="fBrand" aria-label="Filtrer par marque"><option value="">Toutes les marques</option></select>
   <select id="fSource" aria-label="Filtrer par source"><option value="">Toutes les sources</option></select>
-  <label class="toggle"><input type="checkbox" id="fLost"> Afficher les abandons</label>
+  <label class="toggle"><input type="checkbox" id="fLost" checked> Afficher les clôturés</label>
 </div>
 
 <div class="board-wrap"><div class="board" id="board"></div></div>
+
+<section class="suivi">
+  <div class="sec-h"><h2>Suivi des franchisés</h2><p>Les deals gagnés, pendant leurs premiers mois d'activité. Faites glisser une carte ou cochez les points dans la fiche.</p></div>
+  <div class="board-wrap"><div class="board" id="suiviBoard"></div></div>
+</section>
 
 <section class="funnel">
   <h2>Pilotage du parcours</h2>
@@ -175,19 +185,21 @@ footer{font-size:13px;color:var(--muted)}
 <script>
 (function(){
 var STAGES=[
- {name:'Acquisition',full:'Identifier et attirer',kpi:'Nombre de leads entrants',checks:['Profil comparé au franchisé idéal','Source du lead renseignée','Premier contact pris']},
- {name:'Qualification',full:'Qualifier et valider le fit',kpi:'Taux de candidats qualifiés',checks:['Entretien de découverte et de motivation','Compétences commerciales et managériales évaluées','Motivations, contraintes, objectifs compris','Adéquation aux valeurs du réseau','Réunion d\'information collective suivie']},
+ {name:'Acquisition',full:'Identifier et attirer',kpi:'Nombre de leads entrants',checks:['Source du lead renseignée','Premier contact pris']},
+ {name:'Qualification',full:'Qualifier et valider le fit',kpi:'Taux de candidats qualifiés',checks:['Entretien de découverte et de motivation','Compétences commerciales et managériales évaluées','Motivations, contraintes, objectifs compris','Adéquation aux valeurs du réseau','Planification de la réunion collective']},
  {name:'Faisabilité',full:'Construire le projet',kpi:'Taux de projets validés',checks:['Zone de chalandise définie','Concurrence et marché local étudiés','Format d\'implantation choisi','Attentes du candidat compatibles avec le concept']},
  {name:'Financement',full:'Valider le modèle économique',kpi:'Taux d\'obtention des financements',checks:['Investissement et droit d\'entrée chiffrés','Apport et capacité d\'endettement évalués','Prévisionnel et plan de trésorerie','Dossier bancaire déposé','Scénarios de rentabilité testés']},
- {name:'Décision',full:'Validation par les deux parties',kpi:'Taux de transformation en contrats',checks:['Rencontre avec les équipes du réseau','Échange avec des franchisés en activité','Obligations, redevances, contrat présentés','Réalités du métier comprises','Comité d\'agrément validé']},
+ {name:'Décision',full:'Validation par les deux parties',kpi:'Taux de transformation en contrats',checks:['Rencontre avec les équipes du réseau','Échange avec des franchisés en activité','Obligations, redevances, contrat présentés','Validé par le franchiseur en comité']},
  {name:'Engagement',full:'Contractualiser',kpi:'Contrats en cours de signature',checks:['DIP remis au candidat','Démarches juridiques, administratives, bancaires','Contrat de franchise signé']},
  {name:'Pré-ouverture',full:'Former et préparer',kpi:'Taux d\'ouvertures dans les délais',checks:['Formation initiale au siège','Savoir-faire et standards transmis','Recrutement de l\'équipe','Communication locale et lancement','Prérequis à l\'ouverture vérifiés']},
- {name:'Activation',full:'Accompagner les premiers mois',kpi:'Performance à 3, 6 et 12 mois',checks:['Suivi renforcé des premières semaines','Point à 3 mois','Point à 6 mois','Point à 12 mois']}
+ {name:'Ouverture',full:'Ouvrir l\'agence et démarrer',kpi:'Agences ouvertes',checks:['Agence ouverte au public','Premiers clients et premières interventions','Suivi renforcé des premières semaines','Premiers indicateurs : CA, marge, trésorerie, recrutement']}
 ];
-var BRANDS={o2:{n:'O2',c:'--b-o2'},apef:{n:'APEF',c:'--b-apef'},bienv:{n:'Les Bienveillants',c:'--b-bienv'},lav:{n:'La Compagnie des Lavandières',c:'--b-lav'},pb:{n:'Les Petits Bilingues',c:'--b-pb'}};
-var SOURCES=['Franchise Expo Paris','Campagne OUI','Portail franchise','LinkedIn','Recommandation franchisé','Webinaire','Banque partenaire'];
-var LOST=['Apport insuffisant','Projet reporté','A choisi un autre réseau','Zone indisponible','Profil non retenu'];
-var DOUBIN=20, ENG=5, KEY='pf-idf-v1';
+var SUIVI=['Point à 3 mois','Point à 6 mois','Retour d\'expérience du franchisé'];
+var SUIVI_COLS=['Point à 3 mois','Point à 6 mois','Retour d\'expérience','Suivi terminé'];
+var BRANDS={o2:{n:'H2O',c:'--b-o2'},apef:{n:'FEPA',c:'--b-apef'},bienv:{n:'Les Bien-pensants',c:'--b-bienv'},lav:{n:'La Compagnie du Lavandou',c:'--b-lav'},pb:{n:'Les Mini-polyglottes',c:'--b-pb'}};
+var SOURCES=['Franchise Expo Paris','Salon Go Entrepreneurs','Salon SME','Marketing','Portail franchise','LinkedIn','Recommandation franchisé','Webinaire','Partenaires'];
+var LOST=['Abandon','Apport insuffisant','Projet reporté','A choisi un autre réseau','Zone indisponible','Profil non retenu par le franchiseur'];
+var DOUBIN=20, ENG=5, PRE=6, OUV=7, KEY='pf-idf-v3', OLDKEY='pf-idf-v2';
 
 function today(){var d=new Date();d.setHours(0,0,0,0);return d}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -201,38 +213,66 @@ function uid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).sli
 function mk(o){
   var checks={};
   for(var i=0;i<STAGES.length;i++){
-    var n=STAGES[i].checks.length;
     checks[i]=STAGES[i].checks.map(function(_,j){return i<o.stage || (i===o.stage && j<(o.done||0))});
   }
   return {id:uid(),name:o.name,brand:o.brand,city:o.city,source:o.source,apport:o.apport,stage:o.stage,lost:!!o.lost,lostReason:o.lost||'',
+    won:o.won!=null,wonDate:o.won!=null?off(o.won):'',suivi:o.suivi||[false,false,false],
     nextLabel:o.next||'',nextDate:o.nd==null?'':off(o.nd),dip:o.dip==null?'':off(o.dip),checks:checks,notes:o.notes||'',
     hist:[{d:off(o.since||-30),t:'Lead créé ('+o.source+')'}]};
 }
 function seed(){
   return [
-   mk({name:'Nadia Haddad',brand:'pb',city:'Paris 15e',source:'Portail franchise',apport:30,stage:0,done:2,next:'Premier appel de découverte',nd:0,since:-2}),
-   mk({name:'Hugo Bernard',brand:'lav',city:'Vincennes (94)',source:'Portail franchise',apport:20,stage:0,done:1,next:'Envoyer la brochure',nd:-3,since:-6}),
-   mk({name:'Sophie Lefèvre',brand:'lav',city:'Boulogne-Billancourt (92)',source:'LinkedIn',apport:25,stage:1,done:1,next:'Entretien de motivation',nd:-1,since:-12}),
-   mk({name:'Inès Garnier',brand:'bienv',city:'Argenteuil (95)',source:'Recommandation franchisé',apport:50,stage:1,done:3,next:'Réunion d\'information collective',nd:2,since:-15,notes:'Ancienne infirmière, très sensible au projet seniors.'}),
-   mk({name:'Julien Moreau',brand:'o2',city:'Cergy (95)',source:'Webinaire',apport:40,stage:2,done:2,next:'Valider la zone de chalandise',nd:3,since:-25}),
-   mk({name:'Thomas Girard',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
-   mk({name:'Claire Martin',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
-   mk({name:'Karim Benali',brand:'o2',city:'Saint-Denis (93)',source:'Campagne OUI',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise O2 + O2 Jardinage.'}),
-   mk({name:'Émilie Rousseau',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
-   mk({name:'Marc Dubois',brand:'apef',city:'Meaux (77)',source:'Campagne OUI',apport:35,stage:7,done:1,dip:-150,next:'Point à 3 mois',nd:14,since:-200}),
-   mk({name:'Laura Petit',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
-   mk({name:'Paul Lambert',brand:'o2',city:'Rueil-Malmaison (92)',source:'Franchise Expo Paris',apport:45,stage:2,done:1,lost:'Projet reporté',since:-60})
+   mk({name:'Nadia H.',brand:'pb',city:'Paris 15e',source:'Portail franchise',apport:30,stage:0,done:2,next:'Premier appel de découverte',nd:0,since:-2}),
+   mk({name:'Hugo B.',brand:'lav',city:'Vincennes (94)',source:'Portail franchise',apport:20,stage:0,done:1,next:'Envoyer la brochure',nd:-3,since:-6}),
+   mk({name:'Sophie L.',brand:'lav',city:'Boulogne-Billancourt (92)',source:'LinkedIn',apport:25,stage:1,done:1,next:'Entretien de motivation',nd:-1,since:-12}),
+   mk({name:'Déborah G.',brand:'bienv',city:'Argenteuil (95)',source:'Recommandation franchisé',apport:50,stage:1,done:3,next:'Réunion d\'information collective',nd:2,since:-15,notes:'Ancienne infirmière, très sensible au projet seniors.'}),
+   mk({name:'Julien M.',brand:'o2',city:'Cergy (95)',source:'Webinaire',apport:40,stage:2,done:2,next:'Valider la zone de chalandise',nd:3,since:-25}),
+   mk({name:'Thomas G.',brand:'apef',city:'Créteil (94)',source:'Recommandation franchisé',apport:50,stage:3,done:3,next:'RDV banque partenaire',nd:5,since:-40,notes:'Cadre commercial en reconversion, projet en couple.'}),
+   mk({name:'Claire M.',brand:'bienv',city:'Versailles (78)',source:'Franchise Expo Paris',apport:45,stage:4,done:2,next:'Rencontre avec un franchisé en activité',nd:2,since:-55}),
+   mk({name:'Franck B.',brand:'o2',city:'Saint-Denis (93)',source:'Marketing',apport:60,stage:5,done:1,dip:-12,next:'Relance accord de prêt',nd:1,since:-70,notes:'Vise la multi-franchise H2O + H2O Jardinage.'}),
+   mk({name:'Émilie R.',brand:'bienv',city:'Évry-Courcouronnes (91)',source:'Franchise Expo Paris',apport:55,stage:6,done:1,dip:-45,next:'Formation initiale au Mans',nd:7,since:-110}),
+   mk({name:'Frédéric C.',brand:'lav',city:'Saint-Germain-en-Laye (78)',source:'Partenaires',apport:40,stage:7,done:1,dip:-90,next:'Inauguration de l\'agence',nd:4,since:-140}),
+   mk({name:'Romain V.',brand:'o2',city:'Montreuil (93)',source:'Salon Go Entrepreneurs',apport:45,stage:7,done:4,dip:-150,won:-10,suivi:[false,false,false],next:'Point à 3 mois',nd:80,since:-190}),
+   mk({name:'Marc D.',brand:'apef',city:'Meaux (77)',source:'Marketing',apport:35,stage:7,done:4,dip:-220,won:-100,suivi:[true,false,false],next:'Point à 6 mois',nd:14,since:-260}),
+   mk({name:'Isabelle T.',brand:'pb',city:'Paris 11e',source:'Salon SME',apport:30,stage:7,done:4,dip:-480,won:-200,suivi:[true,true,true],since:-520,notes:'Franchisée autonome, envisage une 2e agence.'}),
+   mk({name:'Laura P.',brand:'o2',city:'Nanterre (92)',source:'LinkedIn',apport:15,stage:1,done:2,lost:'Apport insuffisant',since:-35}),
+   mk({name:'Paul L.',brand:'o2',city:'Rueil-Malmaison (92)',source:'Franchise Expo Paris',apport:45,stage:2,done:1,lost:'Projet reporté',since:-60})
   ];
 }
 
-var store={get:function(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}},
-           set:function(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
-var state=store.get()||{goal:15,list:seed()};
-function save(){store.set(state)}
+var store={get:function(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+           set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+// Reprise des données de la version précédente (9 étapes avec Suivi dans le kanban)
+function migrate(old){
+  var RENAMED={'Campagne nationale':'Marketing','Banque partenaire':'Partenaires'};
+  var NAMES={"Nadia Haddad":"Nadia H.","Hugo Bernard":"Hugo B.","Sophie Lefèvre":"Sophie L.","Inès Garnier":"Déborah G.","Julien Moreau":"Julien M.","Thomas Girard":"Thomas G.","Claire Martin":"Claire M.","Karim Benali":"Franck B.","Émilie Rousseau":"Émilie R.","Sarah Cohen":"Frédéric C.","Marc Dubois":"Marc D.","Laura Petit":"Laura P.","Paul Lambert":"Paul L."};
+  old.list.forEach(function(c){
+    if(NAMES[c.name])c.name=NAMES[c.name];
+    if(RENAMED[c.source])c.source=RENAMED[c.source];
+    if(c.stage>=8){var o=(c.checks&&c.checks[8])||[];c.suivi=[!!o[0],!!o[1],!!o[3]];c.stage=OUV;c.won=true;c.lost=false;if(!c.wonDate)c.wonDate=iso(today())}
+    if(c.checks)delete c.checks[8];
+    if(!c.suivi)c.suivi=c.won?[true,true,true]:[false,false,false];
+    if(c.lost && c.stage>=OUV)c.lost=false;
+  });
+  if(!old.list.some(function(c){return c.won})) seed().filter(function(c){return c.won}).forEach(function(c){old.list.push(c)});
+  return old;
+}
+var state=store.get(KEY);
+if(!state){var prev=store.get(OLDKEY);state=prev&&prev.list?migrate(prev):{goal:15,list:seed(),v:4}}
+// Checklists raccourcies : Acquisition (-1 point), Décision (-1 point)
+if((state.v||0)<4){state.list.forEach(function(c){if(c.checks[0]&&c.checks[0].length===3)c.checks[0].splice(0,1);if(c.checks[4]&&c.checks[4].length===5)c.checks[4].splice(3,1)});state.v=4}
+state.list.forEach(function(c){if(c.lostReason==='Profil non retenu')c.lostReason='Profil non retenu par le franchiseur'});
+function save(){store.set(KEY,state)}
 
 function doubinDate(c){if(!c.dip)return null;var d=parse(c.dip);d.setDate(d.getDate()+DOUBIN);return iso(d)}
 function doubinOk(c){var d=doubinDate(c);return !!d && diff(d)<=0}
 function signed(c){return c.stage>ENG || (c.stage===ENG && c.checks[ENG][2])}
+function stageDone(c,i){var a=c.checks[i]||[];return a.every(function(v,j){return (i===ENG&&j===0)?!!c.dip:v})}
+function remaining(c,i){var a=c.checks[i]||[];return a.filter(function(v,j){return !((i===ENG&&j===0)?!!c.dip:v)}).length}
+function firstIncomplete(c,from,to){for(var i=from;i<to;i++){if(!stageDone(c,i))return i}return -1}
+function suiviCol(c){var i=c.suivi.indexOf(false);return i<0?SUIVI.length:i}
+function suiviDone(c){return suiviCol(c)===SUIVI.length}
+function reasonsFor(c){return c.stage>=OUV?[]:c.stage===PRE?['Abandon']:LOST}
 function progress(c){var a=c.checks[c.stage]||[];var n=a.filter(Boolean).length;return [n,a.length]}
 function brandChip(b){var B=BRANDS[b];return '<span class="chip" style="--b:var('+B.c+')">'+esc(B.n)+'</span>'}
 
@@ -253,23 +293,32 @@ function visible(c){
 function renderKpis(){
   var L=state.list, active=L.filter(function(c){return !c.lost && !signed(c)}).length;
   var sig=L.filter(function(c){return !c.lost && signed(c)}).length;
-  var late=L.filter(function(c){return !c.lost && c.nextDate && diff(c.nextDate)<0}).length;
-  var conv=L.length?Math.round(sig/L.length*100):0;
+  var won=L.filter(function(c){return c.won}).length;
+  var inSuivi=L.filter(function(c){return c.won && !suiviDone(c)}).length;
+  var late=L.filter(function(c){return !c.lost && !(c.won&&suiviDone(c)) && c.nextDate && diff(c.nextDate)<0}).length;
+  var conv=L.length?Math.round(won/L.length*100):0;
   var pct=Math.min(100,Math.round(sig/(state.goal||1)*100));
   document.getElementById('kpis').innerHTML=
    '<div class="kpi"><span class="v">'+L.length+'</span><span class="l">Leads au total</span></div>'+
    '<div class="kpi"><span class="v">'+active+'</span><span class="l">Candidats en cours de parcours</span></div>'+
    '<div class="kpi"><span class="v">'+sig+' / '+state.goal+'</span><span class="goal">Contrats signés · objectif <input id="goal" type="number" min="1" value="'+state.goal+'" aria-label="Objectif de signatures"></span><div class="bar"><i style="width:'+pct+'%"></i></div></div>'+
-   '<div class="kpi"><span class="v">'+conv+' %</span><span class="l">Transformation lead → contrat</span></div>'+
+   '<div class="kpi"><span class="v">'+won+'</span><span class="l">Deals gagnés · '+conv+' % des leads</span></div>'+
+   '<div class="kpi"><span class="v">'+inSuivi+'</span><span class="l">Franchisés en suivi</span></div>'+
    '<div class="kpi'+(late?' alert':'')+'"><span class="v">'+late+'</span><span class="l">Relances en retard</span></div>';
   document.getElementById('goal').addEventListener('change',function(e){var v=parseInt(e.target.value,10);if(v>0){state.goal=v;save();renderKpis()}});
 }
 
+function nextLine(c){
+  if(!c.nextLabel)return '';
+  var d=c.nextDate?diff(c.nextDate):null, late=d!=null&&d<0;
+  return '<span class="next'+(late?' late':'')+'"><span>'+esc(c.nextLabel)+'</span><span>'+(d==null?'':d===0?"aujourd'hui":late?'retard '+(-d)+' j':fmt(c.nextDate))+'</span></span>';
+}
 function card(c){
   var p=progress(c), html='<button class="card" type="button" data-id="'+c.id+'">';
   html+='<span class="name">'+esc(c.name)+'</span><span class="row">'+brandChip(c.brand)+'</span>';
   html+='<span class="meta">'+esc(c.city)+' · apport '+esc(c.apport)+' k€</span>';
-  if(c.lost){html+='<span class="row"><span class="pill late">'+esc(c.lostReason)+'</span><span class="pill">arrêté en '+STAGES[c.stage].name+'</span></span>';}
+  if(c.won){html+='<span class="row"><span class="pill ok">Gagné le '+fmt(c.wonDate)+'</span><span class="pill">'+(suiviDone(c)?'Suivi terminé':'En suivi '+suiviCol(c)+'/'+SUIVI.length)+'</span></span>';}
+  else if(c.lost){html+='<span class="row"><span class="pill late">'+esc(c.lostReason)+'</span><span class="pill">arrêté en '+STAGES[c.stage].name+'</span></span>';}
   else{
     html+='<span class="prog" title="'+p[0]+'/'+p[1]+' étapes faites"><i style="width:'+(p[1]?p[0]/p[1]*100:0)+'%"></i></span>';
     if(c.stage===ENG){
@@ -278,53 +327,88 @@ function card(c){
       else if(doubinOk(c)) html+='<span class="row"><span class="pill ok">Délai Doubin respecté</span></span>';
       else html+='<span class="row"><span class="pill warn">Signature possible dans '+diff(doubinDate(c))+' j</span></span>';
     }
-    if(c.nextLabel){var d=c.nextDate?diff(c.nextDate):null, late=d!=null&&d<0;
-      html+='<span class="next'+(late?' late':'')+'"><span>'+esc(c.nextLabel)+'</span><span>'+(d==null?'':d===0?"aujourd'hui":late?'retard '+(-d)+' j':fmt(c.nextDate))+'</span></span>';}
+    html+=nextLine(c);
   }
+  return html+'</button>';
+}
+function suiviCard(c){
+  var n=suiviCol(c), html='<button class="card" type="button" data-id="'+c.id+'">';
+  html+='<span class="name">'+esc(c.name)+'</span><span class="row">'+brandChip(c.brand)+'</span>';
+  html+='<span class="meta">'+esc(c.city)+' · gagné le '+fmt(c.wonDate)+'</span>';
+  html+='<span class="prog" title="'+n+'/'+SUIVI.length+' points de suivi faits"><i style="width:'+(n/SUIVI.length*100)+'%;background:var(--ok)"></i></span>';
+  if(suiviDone(c)) html+='<span class="row"><span class="pill ok">Franchisé autonome</span></span>';
+  else html+=nextLine(c);
   return html+'</button>';
 }
 
 function renderBoard(){
   var L=state.list.filter(visible), out='';
   STAGES.forEach(function(s,i){
-    var items=L.filter(function(c){return !c.lost && c.stage===i});
+    var items=L.filter(function(c){return !c.lost && !c.won && c.stage===i});
     out+='<div class="col" data-stage="'+i+'"><div class="col-h"><span class="n">Étape '+(i+1)+'</span><span class="t">'+s.name+'<span class="c">'+items.length+'</span></span></div>';
     out+=items.length?items.map(card).join(''):'<div class="empty">Aucun candidat</div>';
     out+='</div>';
   });
+  var won=L.filter(function(c){return c.won});
+  out+='<div class="col won" data-stage="won"><div class="col-h"><span class="n">Clôturés comme gagnés</span><span class="t">Gagnés<span class="c">'+won.length+'</span></span></div>'+(won.length?won.map(card).join(''):'<div class="empty">Aucun deal gagné</div>')+'</div>';
   if(fLost.checked){
     var lost=L.filter(function(c){return c.lost});
-    out+='<div class="col lost" data-stage="lost"><div class="col-h"><span class="n">Sortis du parcours</span><span class="t">Abandons<span class="c">'+lost.length+'</span></span></div>'+(lost.length?lost.map(card).join(''):'<div class="empty">Aucun abandon</div>')+'</div>';
+    out+='<div class="col lost" data-stage="lost"><div class="col-h"><span class="n">Sortis du pipeline</span><span class="t">Clôturés<span class="c">'+lost.length+'</span></span></div>'+(lost.length?lost.map(card).join(''):'<div class="empty">Aucun lead clôturé</div>')+'</div>';
   }
   document.getElementById('board').innerHTML=out;
+  var sOut='';
+  SUIVI_COLS.forEach(function(name,k){
+    var items=won.filter(function(c){return suiviCol(c)===k});
+    var last=k===SUIVI_COLS.length-1;
+    sOut+='<div class="col'+(last?' won':'')+'" data-step="'+k+'"><div class="col-h"><span class="n">'+(last?'Fin du suivi':'Prochain point')+'</span><span class="t">'+esc(name)+'<span class="c">'+items.length+'</span></span></div>';
+    sOut+=items.length?items.map(suiviCard).join(''):'<div class="empty">Aucun franchisé</div>';
+    sOut+='</div>';
+  });
+  document.getElementById('suiviBoard').innerHTML=sOut;
   initDnD();
 }
 
 // Glisser-déposer
 function toast(t){var el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){el.hidden=true},4000)}
 var sortables=[];
+function sortOn(sel,group,cb){
+  Array.prototype.forEach.call(document.querySelectorAll(sel),function(col){
+    sortables.push(Sortable.create(col,{group:group,draggable:'.card',filter:'.empty',animation:150,
+      delay:150,delayOnTouchOnly:true,ghostClass:'sortable-ghost',dragClass:'sortable-drag',
+      onEnd:function(ev){if(ev.from===ev.to){setTimeout(renderBoard,0);return}cb(ev.item.dataset.id,ev.to)}}));
+  });
+}
 function initDnD(){
   if(!window.Sortable)return;
   sortables.forEach(function(s){s.destroy()});sortables=[];
-  Array.prototype.forEach.call(document.querySelectorAll('#board .col'),function(col){
-    sortables.push(Sortable.create(col,{group:'pipeline',draggable:'.card',filter:'.empty',animation:150,
-      delay:150,delayOnTouchOnly:true,ghostClass:'sortable-ghost',dragClass:'sortable-drag',
-      onEnd:function(ev){
-        if(ev.from===ev.to){setTimeout(renderBoard,0);return}
-        moveTo(ev.item.dataset.id,ev.to.dataset.stage);
-      }}));
-  });
+  sortOn('#board .col','pipeline',function(id,to){moveTo(id,to.dataset.stage)});
+  sortOn('#suiviBoard .col','suivi',function(id,to){setSuivi(id,+to.dataset.step)});
+}
+function win(c){c.won=true;c.wonDate=iso(today());if(!c.suivi)c.suivi=[false,false,false];c.nextLabel=SUIVI[0];c.nextDate=off(90);log(c,'Deal clôturé comme gagné, entrée en suivi');save();toast(c.name+' : deal gagné. Le franchisé entre dans le suivi des premiers mois.')}
+function setSuivi(id,k){
+  var c=find(id);
+  if(c){c.suivi=SUIVI.map(function(_,j){return j<k});log(c,k>=SUIVI.length?'Suivi terminé':'Suivi : prochain point « '+SUIVI[k]+' »');
+    if(k>=SUIVI.length){c.nextLabel='';c.nextDate=''}else{c.nextLabel=SUIVI[k]}save()}
+  setTimeout(renderAll,0);
 }
 function moveTo(id,target){
   var c=find(id);
-  if(c && target==='lost'){
-    if(!c.lost){c.lost=true;c.lostReason='Motif à préciser';log(c,'Sorti du parcours');save();toast(c.name+' passe en abandon. Précisez le motif dans sa fiche.')}
+  if(c && target==='won'){
+    if(c.won){}
+    else if(c.lost||c.stage!==OUV){toast('Seul un deal à l\'étape Ouverture peut être clôturé comme gagné.')}
+    else if(!stageDone(c,OUV)){toast('Cochez toutes les cases de l\'étape Ouverture avant de clôturer comme gagné.')}
+    else win(c);
+  } else if(c && target==='lost'){
+    if(c.won||c.stage>=OUV){toast('À partir de l\'ouverture, un deal ne peut plus être perdu.')}
+    else if(!c.lost){c.lost=true;c.lostReason=c.stage===PRE?'Abandon':'Motif à préciser';log(c,'Clôturé : '+c.lostReason);save();toast(c.stage===PRE?c.name+' clôturé : Abandon.':c.name+' est clôturé. Choisissez le motif dans sa fiche.')}
   } else if(c){
-    var to=+target;
-    if(c.stage<=ENG && to>ENG && !signed(c)){
+    var to=+target, k=to>c.stage?firstIncomplete(c,c.stage,to):-1;
+    if(k>=0){toast('Étape « '+STAGES[k].name+' » incomplète : cochez toutes ses cases avant d\'avancer.')}
+    else if(c.stage<=ENG && to>ENG && !signed(c)){
       toast(!c.dip?'Remettez d\'abord le DIP à '+c.name+'.':!doubinOk(c)?'Loi Doubin : pas de signature avant le '+fmt(doubinDate(c))+'.':'Cochez « Contrat de franchise signé » dans la fiche de '+c.name+'.');
     } else {
       if(c.lost){c.lost=false;log(c,'Réintégré au parcours')}
+      if(c.won){c.won=false;c.wonDate='';log(c,'Deal rouvert')}
       if(to!==c.stage){c.stage=to;log(c,'Passage à l\'étape '+STAGES[to].name)}
       save();
     }
@@ -334,10 +418,10 @@ function moveTo(id,target){
 
 function renderFunnel(){
   var L=state.list, n=L.length||1, out='';
-  STAGES.forEach(function(s,i){
-    var r=L.filter(function(c){return c.stage>=i}).length;
-    out+='<div class="f-row"><div class="s"><b>'+(i+1)+'. '+s.name+'</b><small>'+s.kpi+'</small></div><div class="f-track"><i style="width:'+(r/n*100)+'%"></i></div><div class="v">'+r+' · '+Math.round(r/n*100)+' %</div></div>';
-  });
+  function row(label,kpi,r){return '<div class="f-row"><div class="s"><b>'+label+'</b><small>'+kpi+'</small></div><div class="f-track"><i style="width:'+(r/n*100)+'%"></i></div><div class="v">'+r+' · '+Math.round(r/n*100)+' %</div></div>'}
+  STAGES.forEach(function(s,i){out+=row((i+1)+'. '+s.name,s.kpi,L.filter(function(c){return c.stage>=i}).length)});
+  out+=row('Gagnés','Deals clôturés comme gagnés',L.filter(function(c){return c.won}).length);
+  out+=row('Suivi terminé','Franchisés autonomes après les premiers mois',L.filter(function(c){return c.won&&suiviDone(c)}).length);
   document.getElementById('funnel').innerHTML=out;
 }
 function renderAll(){renderKpis();renderBoard();renderFunnel()}
@@ -350,10 +434,11 @@ function log(c,t){c.hist.unshift({d:iso(today()),t:t})}
 function openCard(id){cur=find(id);flash='';draw();if(!dlg.open)dlg.showModal()}
 function draw(){
   var c=cur, s=STAGES[c.stage], h='';
-  h+='<div class="dlg-h"><div><h2>'+esc(c.name)+'</h2><div class="row" style="margin-top:6px">'+brandChip(c.brand)+(c.lost?'<span class="pill late">Abandon : '+esc(c.lostReason)+'</span>':'')+'</div></div><button class="btn ghost" type="button" data-act="close" aria-label="Fermer">Fermer</button></div>';
-  h+='<div><div class="stepper">'+STAGES.map(function(_,i){return '<span class="'+(i<c.stage?'done':i===c.stage?'cur':'')+'" title="'+STAGES[i].name+'"></span>'}).join('')+'</div><div class="stage-name" style="margin-top:6px">Étape '+(c.stage+1)+' sur 8 · <b>'+s.name+'</b> · '+s.full+'</div></div>';
+  h+='<div class="dlg-h"><div><h2>'+esc(c.name)+'</h2><div class="row" style="margin-top:6px">'+brandChip(c.brand)+(c.won?'<span class="pill ok">Gagné le '+fmt(c.wonDate)+'</span>':c.lost?'<span class="pill late">Clôturé : '+esc(c.lostReason)+'</span>':'')+'</div></div><button class="btn ghost" type="button" data-act="close" aria-label="Fermer">Fermer</button></div>';
+  if(c.won) h+='<div class="stage-name">Deal gagné · <b>Suivi des premiers mois</b> · '+(suiviDone(c)?'suivi terminé':suiviCol(c)+' point'+(suiviCol(c)>1?'s':'')+' sur '+SUIVI.length)+'</div>';
+  else h+='<div><div class="stepper">'+STAGES.map(function(_,i){return '<span class="'+(i<c.stage?'done':i===c.stage?'cur':'')+'" title="'+STAGES[i].name+'"></span>'}).join('')+'</div><div class="stage-name" style="margin-top:6px">Étape '+(c.stage+1)+' sur '+STAGES.length+' · <b>'+s.name+'</b> · '+s.full+'</div></div>';
   h+='<div class="grid">';
-  h+='<label class="f">Marque visée<select id="e-brand">'+Object.keys(BRANDS).map(function(k){return '<option value="'+k+'"'+(k===c.brand?' selected':'')+'>'+esc(BRANDS[k].n)+'</option>'}).join('')+'</select></label>';
+  h+='<label class="f">Marque<select id="e-brand">'+Object.keys(BRANDS).map(function(k){return '<option value="'+k+'"'+(k===c.brand?' selected':'')+'>'+esc(BRANDS[k].n)+'</option>'}).join('')+'</select></label>';
   h+='<label class="f">Zone d\'implantation<input id="e-city" value="'+esc(c.city)+'"></label>';
   h+='<label class="f">Source du lead<select id="e-source">'+SOURCES.map(function(x){return '<option'+(x===c.source?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></label>';
   h+='<label class="f">Apport personnel (k€)<input id="e-apport" type="number" min="0" value="'+esc(c.apport)+'"></label>';
@@ -361,30 +446,40 @@ function draw(){
   h+='<label class="f">Date prévue<input id="e-nd" type="date" value="'+esc(c.nextDate)+'"></label>';
   h+='<label class="f full">Notes<textarea id="e-notes">'+esc(c.notes)+'</textarea></label>';
   h+='</div>';
-  h+='<div class="box"><h3>À faire à cette étape</h3>';
-  s.checks.forEach(function(t,j){
-    var dis='', checked=c.checks[c.stage][j];
-    if(c.stage===ENG && j===0){checked=!!c.dip;dis=' disabled'}
-    if(c.stage===ENG && j===2 && !doubinOk(c)){dis=' disabled'}
-    h+='<label class="chk"><input type="checkbox" data-chk="'+j+'"'+(checked?' checked':'')+dis+'><span>'+esc(t)+'</span></label>';
-  });
-  if(c.stage===ENG){
-    h+='<label class="f">Date de remise du DIP<input id="e-dip" type="date" value="'+esc(c.dip)+'"></label>';
-    if(!c.dip) h+='<div class="law wait">Loi Doubin : remettez le DIP, puis attendez '+DOUBIN+' jours avant toute signature ou tout versement.</div>';
-    else if(doubinOk(c)) h+='<div class="law go">Délai de '+DOUBIN+' jours respecté depuis le '+fmt(c.dip)+' : la signature est possible.</div>';
-    else h+='<div class="law wait">Signature possible à partir du '+fmt(doubinDate(c))+' (DIP remis le '+fmt(c.dip)+').</div>';
+  if(c.won){
+    h+='<div class="box"><h3>Suivi des premiers mois</h3>';
+    SUIVI.forEach(function(t,j){h+='<label class="chk"><input type="checkbox" data-suivi="'+j+'"'+(c.suivi[j]?' checked':'')+'><span>'+esc(t)+'</span></label>'});
+    h+='</div>';
+  } else {
+    h+='<div class="box"><h3>À faire à cette étape</h3>';
+    s.checks.forEach(function(t,j){
+      var dis='', checked=c.checks[c.stage][j];
+      if(c.stage===ENG && j===0){checked=!!c.dip;dis=' disabled'}
+      if(c.stage===ENG && j===2 && !doubinOk(c)){dis=' disabled'}
+      h+='<label class="chk"><input type="checkbox" data-chk="'+j+'"'+(checked?' checked':'')+dis+'><span>'+esc(t)+'</span></label>';
+    });
+    if(c.stage===ENG){
+      h+='<label class="f">Date de remise du DIP<input id="e-dip" type="date" value="'+esc(c.dip)+'"></label>';
+      if(!c.dip) h+='<div class="law wait">Loi Doubin : remettez le DIP, puis attendez '+DOUBIN+' jours avant toute signature ou tout versement.</div>';
+      else if(doubinOk(c)) h+='<div class="law go">Délai de '+DOUBIN+' jours respecté depuis le '+fmt(c.dip)+' : la signature est possible.</div>';
+      else h+='<div class="law wait">Signature possible à partir du '+fmt(doubinDate(c))+' (DIP remis le '+fmt(c.dip)+').</div>';
+    }
+    var r=remaining(c,c.stage);
+    h+='<div class="law '+(r?'wait':'go')+'">'+(r?'Encore '+r+' case'+(r>1?'s':'')+' à cocher avant de '+(c.stage===OUV?'clôturer le deal comme gagné.':'passer à l\'étape suivante.'):'Étape complète.')+'</div>';
+    h+='</div>';
   }
-  h+='</div>';
   if(flash) h+='<div class="msg">'+esc(flash)+'</div>';
   if(c.hist.length) h+='<div class="box"><h3>Historique</h3><div class="hist">'+c.hist.map(function(x){return '<div><span>'+fmt(x.d)+'</span>'+esc(x.t)+'</div>'}).join('')+'</div></div>';
+  if(!c.lost && !c.won && c.stage===OUV) h+='<div class="box win-box"><h3>Clôturer ce deal</h3><p class="stage-name" style="margin:0">À partir de l\'ouverture, le deal ne peut plus être perdu. Il passe dans les gagnés et le franchisé entre dans le suivi des premiers mois.</p><div class="row"><button class="btn primary" type="button" data-act="win"'+(stageDone(c,OUV)?'':' disabled')+'>Clôturer comme gagné</button></div></div>';
+  if(!c.lost && !c.won && c.stage<OUV) h+='<div class="box close-box"><h3>Clôturer ce lead</h3><p class="stage-name" style="margin:0">'+(c.stage===PRE?'À partir de la pré-ouverture, seul l\'abandon est possible.':'Un clic sur le motif sort le candidat du pipeline et le range dans les clôturés.')+'</p><div class="row">'+reasonsFor(c).map(function(x){return '<button class="btn danger" type="button" data-act="lose" data-reason="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div></div>';
   h+='<div class="dlg-f"><div class="row">';
-  if(c.lost){h+='<select id="e-lostr" aria-label="Motif d\'abandon" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px">'+['Motif à préciser'].concat(LOST).map(function(x){return '<option'+(x===c.lostReason?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select><button class="btn" type="button" data-act="revive">Réintégrer au parcours</button>';}
+  if(c.won){h+='<button class="btn" type="button" data-act="unwin">Rouvrir le deal</button>';}
+  else if(c.lost){var opts=c.stage===PRE?['Abandon']:['Motif à préciser'].concat(LOST);h+='<select id="e-lostr" aria-label="Motif de clôture" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px">'+opts.map(function(x){return '<option'+(x===c.lostReason?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select><button class="btn" type="button" data-act="revive">Réintégrer au parcours</button>';}
   else{
     h+='<button class="btn" type="button" data-act="prev"'+(c.stage===0?' disabled':'')+'>← Étape précédente</button>';
-    h+='<button class="btn primary" type="button" data-act="next"'+(c.stage===7?' disabled':'')+'>Étape suivante →</button>';
+    h+='<button class="btn primary" type="button" data-act="next"'+(c.stage===STAGES.length-1||!stageDone(c,c.stage)?' disabled':'')+'>Étape suivante →</button>';
   }
   h+='</div><div class="row">';
-  if(!c.lost) h+='<select id="e-lost" aria-label="Motif d\'abandon" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px">'+LOST.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select><button class="btn danger" type="button" data-act="lose">Marquer abandon</button>';
   h+='<button class="btn ghost danger" type="button" data-act="del">'+(c._del?'Confirmer la suppression':'Supprimer')+'</button>';
   h+='</div></div>';
   body.innerHTML=h;
@@ -395,6 +490,7 @@ body.addEventListener('input',function(e){
   var map={'e-city':'city','e-next':'nextLabel','e-notes':'notes','e-nd':'nextDate','e-apport':'apport','e-brand':'brand','e-source':'source','e-lostr':'lostReason'};
   if(map[t.id]){c[map[t.id]]=t.value;save();renderAll();if(t.id==='e-brand'||t.id==='e-lostr')draw();return}
   if(t.id==='e-dip'){c.dip=t.value;if(t.value)log(c,'DIP remis le '+fmt(t.value));save();renderAll();draw();return}
+  if(t.dataset.suivi!=null){c.suivi[+t.dataset.suivi]=t.checked;var k=suiviCol(c);if(k>=SUIVI.length){c.nextLabel='';c.nextDate='';log(c,'Suivi terminé')}else if(t.checked){c.nextLabel=SUIVI[k];log(c,SUIVI[+t.dataset.suivi]+' fait')}save();renderAll();draw();return}
   if(t.dataset.chk!=null){c.checks[c.stage][+t.dataset.chk]=t.checked;if(c.stage===ENG&&+t.dataset.chk===2&&t.checked)log(c,'Contrat de franchise signé');save();renderAll();draw()}
 });
 body.addEventListener('click',function(e){
@@ -404,21 +500,24 @@ body.addEventListener('click',function(e){
   delete c._del;
   if(a==='next'){
     if(c.stage===ENG && !signed(c)){flash=!c.dip?'Remettez d\'abord le DIP au candidat.':!doubinOk(c)?'Le délai légal de '+DOUBIN+' jours n\'est pas écoulé : pas de signature avant le '+fmt(doubinDate(c))+'.':'Cochez « Contrat de franchise signé » pour passer à la pré-ouverture.';draw();return}
+    if(!stageDone(c,c.stage)){flash='Cochez toutes les cases de l\'étape '+STAGES[c.stage].name+' avant de passer à la suite.';draw();return}
     c.stage++;log(c,'Passage à l\'étape '+STAGES[c.stage].name);
   }
   if(a==='prev'){c.stage--;log(c,'Retour à l\'étape '+STAGES[c.stage].name)}
-  if(a==='lose'){c.lost=true;c.lostReason=document.getElementById('e-lost').value;log(c,'Abandon : '+c.lostReason)}
+  if(a==='lose'){if(reasonsFor(c).indexOf(b.dataset.reason)<0)return;c.lost=true;c.lostReason=b.dataset.reason;log(c,'Clôturé : '+c.lostReason);save();renderAll();dlg.close();toast(c.name+' clôturé : '+c.lostReason);return}
   if(a==='revive'){c.lost=false;log(c,'Réintégré au parcours')}
+  if(a==='win'){if(c.stage!==OUV||!stageDone(c,OUV))return;win(c);renderAll();dlg.close();return}
+  if(a==='unwin'){c.won=false;c.wonDate='';log(c,'Deal rouvert')}
   save();renderAll();draw();
 });
 dlg.addEventListener('close',function(){if(cur)delete cur._del;cur=null});
-document.getElementById('board').addEventListener('click',function(e){var b=e.target.closest('.card');if(b)openCard(b.dataset.id)});
+['board','suiviBoard'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){var b=e.target.closest('.card');if(b)openCard(b.dataset.id)})});
 
 // Nouveau candidat
 document.getElementById('add').addEventListener('click',function(){
   body.innerHTML='<div class="dlg-h"><h2>Nouveau candidat</h2><button class="btn ghost" type="button" data-new="close">Fermer</button></div>'+
   '<form id="newForm" class="grid">'+
-  '<label class="f full">Nom et prénom<input id="n-name" required placeholder="Ex. Camille Durand"></label>'+
+  '<label class="f full">Prénom et initiale<input id="n-name" required placeholder="Ex. Camille D."></label>'+
   '<label class="f">Marque visée<select id="n-brand">'+Object.keys(BRANDS).map(function(k){return '<option value="'+k+'">'+esc(BRANDS[k].n)+'</option>'}).join('')+'</select></label>'+
   '<label class="f">Zone d\'implantation<input id="n-city" placeholder="Ex. Pontoise (95)"></label>'+
   '<label class="f">Source du lead<select id="n-source">'+SOURCES.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'</select></label>'+
@@ -438,7 +537,7 @@ body.addEventListener('click',function(e){if(e.target.closest('[data-new="close"
 var reset=document.getElementById('reset'),armed=false;
 reset.addEventListener('click',function(){
   if(!armed){armed=true;reset.textContent='Confirmer : tout remplacer';setTimeout(function(){armed=false;reset.textContent='Recharger les exemples'},4000);return}
-  armed=false;reset.textContent='Recharger les exemples';state={goal:15,list:seed()};save();renderAll();
+  armed=false;reset.textContent='Recharger les exemples';state={goal:15,list:seed(),v:4};save();renderAll();
 });
 
 renderAll();
